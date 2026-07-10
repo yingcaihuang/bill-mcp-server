@@ -1,0 +1,13 @@
+{
+  "name": "bill-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for bill query API",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1"
+  }
+}

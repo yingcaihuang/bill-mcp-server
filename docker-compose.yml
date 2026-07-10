@@ -1,0 +1,28 @@
+services:
+  mcp-server:
+    build: .
+    container_name: bill-mcp-server
+    restart: unless-stopped
+    expose:
+      - "3000"
+    networks:
+      - mcp-net
+
+  nginx:
+    image: nginx:alpine
+    container_name: bill-mcp-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - mcp-server
+    networks:
+      - mcp-net
+
+networks:
+  mcp-net:
+    driver: bridge

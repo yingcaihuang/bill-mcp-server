@@ -1,0 +1,7 @@
+node_modules
+.kiro
+nginx
+docker-compose.yml
+.dockerignore
+README.md
+.git

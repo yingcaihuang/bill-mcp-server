@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "bill-query": {
+      "url": "https://mcp.verycloud.cn/mcp",
+      "headers": {
+        "X-Bill-Access-Key": "your-access-key-here",
+        "X-Bill-Secret-Key": "your-secret-key-here"
+      }
+    }
+  }
+}
