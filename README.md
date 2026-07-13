@@ -67,8 +67,6 @@ PORT=8080 node server.mjs
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `PORT` | `3000` | 服务监听端口 |
-| `BILL_ACCESS_KEY` | 内置默认值 | 账单 API 访问密钥 |
-| `BILL_SECRET_KEY` | 内置默认值 | 账单 API 秘钥 |
 
 ### 固定配置
 
@@ -78,6 +76,17 @@ PORT=8080 node server.mjs
 | MCP 传输协议 | Streamable HTTP | 支持远程连接 |
 | 运行模式 | Stateless | 无会话状态，每个请求独立处理 |
 
+## 认证说明
+
+客户端通过 HTTP Headers 传递凭证，服务端不存储任何密钥：
+
+- `X-Bill-Access-Key` — 访问密钥（必填）
+- `X-Bill-Secret-Key` — 秘钥（必填）
+
+这些凭证会被转发到后端账单 API 的 `X-Access-Key` / `X-Secret-Key` 头中。
+
+如果客户端未传递 header，工具调用会返回认证失败的错误提示。
+
 ## 客户端连接
 
 ### 远程 MCP 配置（mcp.json）
@@ -86,15 +95,17 @@ PORT=8080 node server.mjs
 {
   "mcpServers": {
     "bill-query": {
-      "url": "https://你的服务器地址/mcp",
+      "url": "https://mcp.verycloud.cn/mcp",
       "headers": {
-        "X-Bill-Access-Key": "your-access-key",
-        "X-Bill-Secret-Key": "your-secret-key"
+        "X-Bill-Access-Key": "<your-access-key>",
+        "X-Bill-Secret-Key": "<your-secret-key>"
       }
     }
   }
 }
 ```
+
+> 参考 `mcp.json.example` 文件。
 
 ### 客户端 UI 配置
 
@@ -102,33 +113,48 @@ PORT=8080 node server.mjs
 
 - **Connection type**: Remote
 - **Name**: `Bill Query`
-- **URL**: `https://你的服务器地址/mcp`
+- **URL**: `https://mcp.verycloud.cn/mcp`
 - **Headers**:
-  - `X-Bill-Access-Key` = 你的访问密钥
-  - `X-Bill-Secret-Key` = 你的秘钥
+  - `X-Bill-Access-Key` = `<your-access-key>`
+  - `X-Bill-Secret-Key` = `<your-secret-key>`
 
 ## 部署
 
-### Docker 部署
+### Docker Compose 部署（推荐）
 
-```dockerfile
-FROM node:20-slim
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
-COPY server.mjs ./
-EXPOSE 3000
-CMD ["node", "server.mjs"]
+项目已包含 `docker-compose.yml`，集成 Nginx 反向代理 + 自签 TLS 证书。
+
+```bash
+# 直接启动
+docker compose up -d --build
 ```
 
-构建和运行：
+启动后：
+- HTTPS: `https://mcp.verycloud.cn/mcp`（443 端口）
+- HTTP 自动跳转到 HTTPS（80 端口）
+- 健康检查：`https://mcp.verycloud.cn/health`
+
+### 证书说明
+
+项目包含自签测试证书（域名 `mcp.verycloud.cn`，有效期 10 年）。
+
+如需重新生成：
+
+```bash
+bash nginx/certs/gen-cert.sh
+```
+
+如需替换为正式证书，将 `.crt` 和 `.key` 文件放入 `nginx/certs/` 目录，然后重启：
+
+```bash
+docker compose restart nginx
+```
+
+### 单独 Docker 部署
 
 ```bash
 docker build -t bill-mcp-server .
-docker run -d -p 3000:3000 \
-  -e BILL_ACCESS_KEY=your-access-key \
-  -e BILL_SECRET_KEY=your-secret-key \
-  bill-mcp-server
+docker run -d -p 3000:3000 bill-mcp-server
 ```
 
 ### PM2 部署
@@ -154,8 +180,6 @@ WorkingDirectory=/opt/bill-mcp-server
 ExecStart=/usr/bin/node server.mjs
 Restart=on-failure
 Environment=PORT=3000
-Environment=BILL_ACCESS_KEY=your-access-key
-Environment=BILL_SECRET_KEY=your-secret-key
 
 [Install]
 WantedBy=multi-user.target
@@ -166,7 +190,7 @@ WantedBy=multi-user.target
 ```nginx
 server {
     listen 443 ssl;
-    server_name mcp.yourdomain.com;
+    server_name mcp.verycloud.cn;
 
     ssl_certificate     /path/to/cert.pem;
     ssl_certificate_key /path/to/key.pem;
@@ -180,6 +204,7 @@ server {
         proxy_buffering off;
         proxy_cache off;
         chunked_transfer_encoding on;
+        proxy_read_timeout 300s;
     }
 
     location /health {
@@ -198,17 +223,6 @@ server {
 | `/mcp` | GET | MCP SSE 通知流（协议规范） |
 | `/mcp` | DELETE | 关闭会话（协议规范） |
 | `/health` | GET | 服务健康检查 |
-
-## 认证说明
-
-客户端通过 HTTP Headers 传递凭证：
-
-- `X-Bill-Access-Key` — 访问密钥
-- `X-Bill-Secret-Key` — 秘钥
-
-这些凭证会被转发到后端账单 API 的 `X-Access-Key` / `X-Secret-Key` 头中。
-
-如果客户端未传递 header，服务会使用环境变量或代码内默认值作为 fallback。
 
 ## 技术栈
 
