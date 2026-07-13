@@ -43,10 +43,44 @@ function createMcpServerInstance() {
         .array(z.string())
         .optional()
         .describe(
-          '分组维度: service(按服务), account(按账号), daily(按天), monthly(按月)。daily 和 monthly 互斥。例如 ["daily","service"]'
+          '分组维度，每个元素必须是独立的值: "service"(按服务), "account"(按账号), "daily"(按天), "monthly"(按月)。daily 和 monthly 互斥，不可同时传。可组合，例如 ["daily","service"] 或 ["account","service"]。注意：每个维度必须是数组中单独的元素，不要用逗号拼接在一个字符串里。'
         ),
     },
     async ({ bill_cycle, channel, tenant_name, account_id, group_by }) => {
+      // Normalize group_by: split any comma-separated values into individual elements
+      if (group_by) {
+        group_by = group_by.flatMap((item) =>
+          item.includes(",") ? item.split(",").map((s) => s.trim()) : [item]
+        );
+
+        // Validate: daily and monthly are mutually exclusive
+        if (group_by.includes("daily") && group_by.includes("monthly")) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: 'group_by 参数错误：daily 和 monthly 互斥，不可同时使用。请只选择其中一个。',
+              },
+            ],
+            isError: true,
+          };
+        }
+
+        // Validate: only allowed values
+        const allowed = new Set(["service", "account", "daily", "monthly"]);
+        const invalid = group_by.filter((v) => !allowed.has(v));
+        if (invalid.length > 0) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `group_by 参数错误：不支持的值 [${invalid.join(", ")}]。允许的值为: service, account, daily, monthly。`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
       // Use credentials from request headers
       const accessKey = requestContext.accessKey;
       const secretKey = requestContext.secretKey;
@@ -155,8 +189,6 @@ function createMcpServerInstance() {
 
 // --- HTTP Server with Streamable HTTP transport (stateless mode) ---
 
-const mcpServer = createMcpServerInstance();
-
 const httpServer = createServer(async (req, res) => {
   // CORS headers for remote access
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -176,7 +208,7 @@ const httpServer = createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   if (url.pathname !== "/racorebill/mcp") {
     // Simple health endpoint for the MCP server itself
-    if (url.pathname === "/health") {
+    if (url.pathname === "/racorebill/health") {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ status: "ok", service: "bill-mcp-server" }));
       return;
@@ -192,20 +224,20 @@ const httpServer = createServer(async (req, res) => {
     secretKey: req.headers["x-bill-secret-key"],
   };
 
-  // Create a stateless transport per request
+  // Create a new server + transport per request (stateless mode)
+  const server = createMcpServerInstance();
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined, // stateless mode
   });
 
-  await mcpServer.connect(transport);
-
+  await server.connect(transport);
   await transport.handleRequest(req, res);
 });
 
 httpServer.listen(PORT, () => {
   console.log(`Bill MCP Server (Streamable HTTP) listening on port ${PORT}`);
   console.log(`MCP endpoint: http://localhost:${PORT}/racorebill/mcp`);
-  console.log(`Health check: http://localhost:${PORT}/health`);
+  console.log(`Health check: http://localhost:${PORT}/racorebill/health`);
   console.log(`Bill API:     ${BASE_URL}`);
   console.log("");
   console.log("Remote clients connect with headers:");
