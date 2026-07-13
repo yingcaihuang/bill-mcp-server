@@ -172,9 +172,9 @@ const httpServer = createServer(async (req, res) => {
     return;
   }
 
-  // Only handle /mcp endpoint
+  // Only handle /racorebill/mcp endpoint
   const url = new URL(req.url, `http://localhost:${PORT}`);
-  if (url.pathname !== "/mcp") {
+  if (url.pathname !== "/racorebill/mcp") {
     // Simple health endpoint for the MCP server itself
     if (url.pathname === "/health") {
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -204,7 +204,7 @@ const httpServer = createServer(async (req, res) => {
 
 httpServer.listen(PORT, () => {
   console.log(`Bill MCP Server (Streamable HTTP) listening on port ${PORT}`);
-  console.log(`MCP endpoint: http://localhost:${PORT}/mcp`);
+  console.log(`MCP endpoint: http://localhost:${PORT}/racorebill/mcp`);
   console.log(`Health check: http://localhost:${PORT}/health`);
   console.log(`Bill API:     ${BASE_URL}`);
   console.log("");

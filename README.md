@@ -49,7 +49,7 @@ node server.mjs
 
 ```
 Bill MCP Server (Streamable HTTP) listening on port 3000
-MCP endpoint: http://localhost:3000/mcp
+MCP endpoint: http://localhost:3000/racorebill/mcp
 Health check: http://localhost:3000/health
 Bill API:     https://bill.racorecloud.com
 ```
@@ -86,7 +86,7 @@ PORT=8080 node server.mjs
 {
   "mcpServers": {
     "bill-query": {
-      "url": "https://你的服务器地址/mcp",
+      "url": "https://你的服务器地址/racorebill/mcp",
       "headers": {
         "X-Bill-Access-Key": "your-access-key",
         "X-Bill-Secret-Key": "your-secret-key"
@@ -102,7 +102,7 @@ PORT=8080 node server.mjs
 
 - **Connection type**: Remote
 - **Name**: `Bill Query`
-- **URL**: `https://你的服务器地址/mcp`
+- **URL**: `https://你的服务器地址/racorebill/mcp`
 - **Headers**:
   - `X-Bill-Access-Key` = 你的访问密钥
   - `X-Bill-Secret-Key` = 你的秘钥
@@ -194,9 +194,9 @@ server {
 
 | 路径 | 方法 | 说明 |
 |------|------|------|
-| `/mcp` | POST | MCP Streamable HTTP 协议端点 |
-| `/mcp` | GET | MCP SSE 通知流（协议规范） |
-| `/mcp` | DELETE | 关闭会话（协议规范） |
+| `/racorebill/mcp` | POST | MCP Streamable HTTP 协议端点 |
+| `/racorebill/mcp` | GET | MCP SSE 通知流（协议规范） |
+| `/racorebill/mcp` | DELETE | 关闭会话（协议规范） |
 | `/health` | GET | 服务健康检查 |
 
 ## 认证说明
