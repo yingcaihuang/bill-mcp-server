@@ -175,6 +175,11 @@ docker compose up -d --build
 bash nginx/certs/gen-cert.sh
 ```
 
+安全建议：
+
+- 不要将 `nginx/certs/server.key` 提交到仓库；该文件是私钥，需仅保留在本地或密钥管理系统中。
+- 仓库已忽略 `nginx/certs/*.key`，若本地缺失私钥，请先执行生成脚本再启动容器。
+
 如需替换为正式证书，将 `.crt` 和 `.key` 文件放入 `nginx/certs/` 目录，然后重启：
 
 ```bash
