@@ -5,7 +5,8 @@
   "type": "module",
   "main": "server.mjs",
   "scripts": {
-    "start": "node server.mjs"
+    "start": "node server.mjs",
+    "test:tenant-link": "node scripts/test-tenant-bill-link.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1"

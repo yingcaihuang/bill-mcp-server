@@ -25,6 +25,23 @@
 
 > `daily` 和 `monthly` 互斥，不可同时使用。可组合使用，例如 `["daily", "service"]`。
 
+### list_bill_tenants — 获取可访问租户列表
+
+返回当前凭证可访问的租户，以及每个租户下可访问的 `usage_account` 列表。
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `channel` | `string` | 否 | 服务商/渠道，默认 `aws` |
+| `bill_cycle` | `string[]` | 否 | 账期列表，格式 YYYYMM；仅在需要附带账单汇总时传入 |
+| `include_bill_summary` | `boolean` | 否 | 是否按账号关联账单并返回租户汇总，默认 `false` |
+
+当 `include_bill_summary=true` 时，服务会自动：
+
+- 调用 `/v1/bill/tenants` 获取租户和 `usage_account`
+- 调用账单查询接口并强制使用 `group_by=["account"]`
+- 用 `usage_account` 和账单返回中的 `account` 字段做关联
+- 汇总每个租户命中的账号数量、总金额、总用量，并返回命中的账号明细
+
 ### health_check — 健康检查
 
 检查后端账单查询服务的运行状态，无需参数。
@@ -59,6 +76,20 @@ Bill API:     https://bill.racorecloud.com
 ```bash
 PORT=8080 node server.mjs
 ```
+
+### 验证租户与账单关联
+
+```bash
+BILL_ACCESS_KEY=your-access-key \
+BILL_SECRET_KEY=your-secret-key \
+npm run test:tenant-link -- 202606
+```
+
+脚本会：
+
+- 先查询租户列表
+- 再按账号维度查询指定账期账单
+- 最后输出“租户 -> usage_account -> 账单金额/用量”的关联结果
 
 ## 配置
 
